@@ -3,133 +3,112 @@ from pydantic import Field, validator
 from typing import List, Optional, Union, Literal
 from sdks.novavision.src.base.model import Package, Image, Inputs, Configs, Outputs, Response, Request, Output, Input, Config
 
-
-class InputImage(Input):
-    name: Literal["inputImage"] = "inputImage"
-    value: Union[List[Image], Image]
+class DataInput(Input):
+    name: Literal["dataInput"] = "dataInput"
+    value: Union[List[Input],Input]
     type: str = "object"
 
-    @validator("type", pre=True, always=True)
-    def set_type_based_on_value(cls, value, values):
-        value = values.get('value')
-        if isinstance(value, Image):
-            return "object"
-        elif isinstance(value, list):
-            return "list"
-
     class Config:
-        title = "Image"
+        title = "Data"
 
-
-class OutputImage(Output):
-    name: Literal["outputImage"] = "outputImage"
-    value: Union[List[Image],Image]
+class DataOutput(Output):
+    name: Literal["dataOutput"] = "dataOutput"
+    value: Union[List[Output],Output]
     type: str = "object"
 
-    @validator("type", pre=True, always=True)
-    def set_type_based_on_value(cls, value, values):
-        value = values.get('value')
-        if isinstance(value, Image):
-            return "object"
-        elif isinstance(value, list):
-            return "list"
-
     class Config:
-        title = "Image"
+        title = "Data"
 
+# region Inputs
+class PresetInputs(Inputs):
+    dataInput: DataInput
 
-class KeepSideFalse(Config):
-    name: Literal["False"] = "False"
-    value: Literal[False] = False
-    type: Literal["bool"] = "bool"
-    field: Literal["option"] = "option"
+class CustomInputs(Inputs):
+    dataOutput: DataOutput
+# endregion
 
-    class Config:
-        title = "Disable"
+# region Outputs
+class PresetOutputs(Inputs):
+    dataInput: DataInput
 
+class CustomOutputs(Outputs):
+    dataOutput: DataOutput
+# endregion
 
-class KeepSideTrue(Config):
-    name: Literal["True"] = "True"
-    value: Literal[True] = True
-    type: Literal["bool"] = "bool"
-    field: Literal["option"] = "option"
+# region Request Configs
+# region Request Configs Fields
 
-    class Config:
-        title = "Enable"
+# endregion
+class PresetConfigs(Configs):
+    pass
 
+class CustomConfigs(Configs):
+    pass
+# endregion
 
-class KeepSideBBox(Config):
-    """
-        Rotate image without catting off sides.
-    """
-    name: Literal["KeepSide"] = "KeepSide"
-    value: Union[KeepSideTrue, KeepSideFalse]
-    type: Literal["object"] = "object"
-    field: Literal["dropdownlist"] = "dropdownlist"
-
-    class Config:
-        title = "Keep Sides"
-
-
-class Degree(Config):
-    """
-        Positive angles specify counterclockwise rotation while negative angles indicate clockwise rotation.
-    """
-    name: Literal["Degree"] = "Degree"
-    value: int = Field(ge=-359.0, le=359.0,default=0)
-    type: Literal["number"] = "number"
-    field: Literal["textInput"] = "textInput"
-    placeHolder: Literal["[-359, 359]"] = "[-359, 359]"
-
-    class Config:
-        title = "Angle"
-
-
-class PackageInputs(Inputs):
-    inputImage: InputImage
-
-
-class PackageConfigs(Configs):
-    degree: Degree
-    drawBBox: KeepSideBBox
-
-
-class PackageOutputs(Outputs):
-    outputImage: OutputImage
-
-
-class PackageRequest(Request):
-    inputs: Optional[PackageInputs]
-    configs: PackageConfigs
+# region Request
+class PresetRequest(Request):
+    inputs: Optional[PresetInputs]
+    configs: PresetConfigs
 
     class Config:
         json_schema_extra = {
             "target": "configs"
         }
 
+class CustomRequest(Request):
+    inputs: Optional[CustomInputs]
+    configs: CustomConfigs
 
-class PackageResponse(Response):
-    outputs: PackageOutputs
+    class Config:
+        json_schema_extra = {
+            "target": "configs"
+        }
+# endregion
 
+# region Response
+class PresetResponse(Response):
+    outputs: PresetOutputs
 
-class PackageExecutor(Config):
-    name: Literal["Package"] = "Package"
-    value: Union[PackageRequest, PackageResponse]
+class CustomResponse(Response):
+    outputs: CustomOutputs
+# endregion
+
+# region Executor Conifgs
+class PresetExecutor(Config):
+    name: Literal["Preset"] = "Preset"
+    value: Union[PresetRequest, PresetResponse]
     type: Literal["object"] = "object"
     field: Literal["option"] = "option"
 
     class Config:
-        title = "Package"
+        title = "Preset"
         json_schema_extra = {
             "target": {
                 "value": 0
             }
         }
+# endregion
 
+class CustomExecutor(Config):
+    name: Literal["Custom"] = "Custom"
+    value: Union[CustomRequest, CustomResponse]
+    type: Literal["object"] = "object"
+    field: Literal["option"] = "option"
 
+    class Config:
+        title = "Custom"
+        json_schema_extra = {
+            "target": {
+                "value": 1
+            }
+        }
+# endregion
+
+# region Root Config
 class ConfigExecutor(Config):
     name: Literal["ConfigExecutor"] = "ConfigExecutor"
-    value: Union[PackageExecutor]
+    value: Union[PresetExecutor, CustomExecutor]
     type: Literal["executor"] = "executor"
     field: Literal["dependentDropdownlist"] = "dependentDropdownlist"
 
@@ -139,7 +118,6 @@ class ConfigExecutor(Config):
             "target": "value"
         }
 
-
 class PackageConfigs(Configs):
     executor: ConfigExecutor
 
@@ -148,3 +126,4 @@ class PackageModel(Package):
     configs: PackageConfigs
     type: Literal["component"] = "component"
     name: Literal["PropertyDefinition"] = "PropertyDefinition"
+# endregion
